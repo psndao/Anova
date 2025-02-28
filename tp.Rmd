@@ -1,0 +1,212 @@
+---
+title: "Analyse de variance sur le jeu de données Penguins"
+author: "Votre Nom"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+On va s'intéresser dans ce TP aux données contenues dans le chier penguins.csv (plus de détails ici) listant
+di érentes quantités mesurées sur 344 manchots en Antarctique au cours de 3 études di érentes menées. Les 8
+variables suivantes ont été relevées :
+species : espèce de l'individu
+island : île de résidence
+bill_length_mm : longueur du bec
+bill_depth_mm : hauteur du bec
+flipper_length_mm : longueur de la nageoire
+body_mass_g : masse corporelle
+sex : sexe de l'individu
+year : année de l'étude menée
+Dans ce TP, le but est de choisir une des variables quantitatives accessibles et de l'étudier en fonction
+d'autres variables. Tout au long de ce sujet, on appellera Quant1la variable que vous aurez choisie.
+
+1\. Chargement des données
+
+```{r}
+# On charge les données
+penguins <- read.csv("penguins.csv", stringsAsFactors = TRUE)
+
+# structure des données
+str(penguins)
+
+# résumé statistique
+summary(penguins)
+
+
+```
+
+2\. Nettoyage des données
+
+```{r}
+# Retrait des individus dont certaines colonnes sont manquantes
+penguins_clean <- na.omit(penguins)
+
+# Vérification de la dimension avant/après
+dim(penguins)      
+dim(penguins_clean)
+
+```
+
+
+2\. Choix de la variable quantitative (Quant1)
+
+Je choisis body_mass_g
+
+3\. Analyse descriptive de Quant1
+
+```{r}
+# 
+summary(penguins_clean$body_mass_g)
+sd(penguins_clean$body_mass_g, na.rm = TRUE)
+
+```
+
+```{r}
+# Histogramme
+hist(penguins_clean$body_mass_g, main = "Distribution de body_mass_g", 
+     xlab = "body_mass_g (g)", col = "lightblue", border = "white")
+
+
+```
+
+```{r}
+# Boxplot par espèce (si pertinent)
+boxplot(body_mass_g ~ species, data = penguins_clean,
+        main = "body_mass_g par espèce", xlab = "Espèce", ylab = "body_mass_g (g)")
+
+```
+4\. Analyse de variance
+
+je choisis par species comme variable qualitative Qual1 pour étudier l’effet sur la variable quantitative choisie body_mass_g.
+
+
+```{r}
+boxplot(body_mass_g ~ species, data = penguins_clean,
+        main = "body_mass_g par espèce",
+        xlab = "species", ylab = "body_mass_g (g)",
+        col = c("lightblue", "lightgreen", "lightpink"))
+
+```
+On Construit un modèle linéaire avec lm:
+
+```{r}
+modele1 <- lm(body_mass_g ~ species, data = penguins_clean)
+summary(modele1)
+
+```
+
+Ce modèle montre que l'espèce a un impact significatif sur la masse corporelle des manchots. La modalité de référence (intercept) présente une masse moyenne d'environ 3706 g. Les Gentoo sont en moyenne plus lourds de près de 1386 g (différence hautement significative), tandis que la différence pour les Chinstrap (environ 27 g) n'est pas significative. Le modèle explique environ 67 % de la variance de la masse corporelle.
+
+```{r}
+# On extrait la table d’ANOVA
+anova(modele1)
+
+```
+les resultats  montrent  que l'espèce (species) a un effet très significatif sur la masse corporelle (body_mass_g). 
+En effet :
+
+Effet de species :
+La somme des carrés pour species est de 145,190,219 répartie sur 2 degrés de liberté, soit une moyenne des carrés de 72,595,110.
+Le F-statistique est de 341.89 avec une p-value < 2.2e-16, ce qui indique que les différences entre les espèces ne sont pas dues au hasard.
+Résidus :
+Les résidus, avec 330 degrés de liberté, présentent une somme des carrés de 70,069,447.
+En somme la variable « species » explique environ 67 % de la variance totale de la masse corporelle, confirmant ainsi son importance en tant que prédicteur dans ce modèle d'analyse de variance
+
+
+4.2\ Étude avec une deuxième variable qualitative (Qual2)
+
+je choisis maintenant island comme deuxième variable qualitative Qual2.
+
+```{r}
+boxplot(body_mass_g ~ island, data = penguins_clean,
+        main = "body_mass_g par island",
+        xlab = "Île", ylab = "body_mass_g",
+        col = c("orange", "purple", "cyan"))
+modele2 <- lm(body_mass_g ~ island, data = penguins_clean)
+summary(modele2)
+anova(modele2)
+par(mfrow = c(2, 2))
+plot(modele2)
+
+```
+
+```{r}
+modele_inter <- lm(body_mass_g ~ species + island, data = penguins_clean)
+summary(modele_inter)
+anova(modele_inter)
+par(mfrow = c(2, 2))
+plot(modele_inter)
+
+
+```
+
+
+5.\ Analyse de covariance
+L’analyse de covariance (ANCOVA) permet d’étudier l’effet combiné d’une variable quantitative et d’une variable qualitative sur une variable de réponse.
+
+5.1\ Choix d’une seconde variable quantitative (Quant2)
+Prenons par exemple bill_length_mm comme Quant2.
+
+a)\ Visualisation et hypothèse
+```{r}
+plot(body_mass_g ~ bill_length_mm, data = penguins_clean,
+     main = "body_mass_g vs bill_length_mm",
+     xlab = " bill_length_mm",
+     ylab = "body_mass_g",
+     pch = 19, col = "darkgreen")
+
+```
+
+b)\ Modèle linéaire simple et tracé de la droite de régression
+```{r}
+modele_cov <- lm(body_mass_g ~ bill_length_mm, data = penguins_clean)
+summary(modele_cov)
+
+```
+Ce modèle indique qu’environ 35\% de la variabilité de la body_mass_g est expliquée par la bill_length_mm. La pente positive (environ +86,8g pour chaque millimètre de bec) est hautement significative (p<2e-16), montrant que plus le bec est long, plus la masse corporelle est élevée. L’intercept (388,845g) n’est pas significatif, ce qui reflète simplement la valeur théorique lorsque la bill_length_mm est 0mm . Le résidu standard (651,4) reste assez élevé, suggérant qu’il reste une part importante de la variabilité à expliquer par d’autres facteurs.
+
+c)\ Vérification des hypothèses
+On Examine les résidus pour vérifier la linéarité, la normalité et l’homogénéité des variances :
+```{r}
+par(mfrow = c(2, 2))
+plot(modele_cov)
+
+```
+Les diagnostics indiquent qu’une simple relation linéaire entre la longueur du bec et la masse corporelle ne capture pas entièrement la variabilité (légère tendance résiduelle sur le graphe « Residuals vs Fitted »). Le Q-Q plot ne montre pas de violation majeure de la normalité, mais quelques valeurs extrêmes apparaissent. On note aussi une hétéroscédasticité modérée (dispersion des résidus inégale) et la présence de points potentiellement influents (résidus vs leverage).
+
+
+5.2\ Intégration d’une variable qualitative (Qual1) dans l’ANCOVA
+a)\ Régression pour chaque modalité de Qual1
+Pour chaque modalité de species, réalise la régression de body_mass_g en fonction de bill_length_mm.
+```{r}
+modele_cov_int <- lm(body_mass_g ~ bill_length_mm * species, data = penguins_clean)
+summary(modele_cov_int)
+
+```
+-Bill_length_mm seul : La longueur du bec a un effet positif sur la masse corporelle, mais n'explique qu'environ 35 % de la variance.
+-Species seul : L'espèce est un prédicteur majeur (67 % de variance expliquée) ; les Gentoo sont significativement plus lourds (+1386 g) que la modalité de référence, tandis que la différence pour Chinstrap n'est pas significative.
+
+-Island seul et combiné avec species : L'effet de l'île est significatif seul (39 % de variance expliquée) mais devient non significatif une fois l'espèce prise en compte.
+
+-Interaction bill_length_mm * species : L'ajout de l'interaction augmente l'explication de la variance à environ 79 %, suggérant que la relation entre la longueur du bec et la masse corporelle varie légèrement selon l'espèce.
+
+
+```{r}
+install.packages("ggplot2")
+library(ggplot2)
+ggplot(penguins_clean, aes(x = bill_length_mm, y = body_mass_g, color = species)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Régression de la masse corporelle en fonction de la longueur du bec par espèce",
+       x = "bill_length_mm (mm)",
+       y = "body_mass_g (g)")
+
+```
+
+
+
